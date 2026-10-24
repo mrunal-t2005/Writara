@@ -103,6 +103,23 @@ export async function evaluateQuality(params: {
   return res.json();
 }
 
+export async function analyzeSeo(params: {
+  content: string;
+  target_keyword?: string;
+  secondary_keywords?: string[];
+  slug?: string;
+  site_url?: string;
+}): Promise<import('../types').SeoAnalysisResult> {
+  const apiKey = getApiKey();
+  const res = await fetch(`${API_BASE}/seo/analyze`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...params, api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error('Failed to analyze SEO metrics');
+  return res.json();
+}
+
 // Brand Voice
 export async function getBrandVoices(): Promise<BrandVoice[]> {
   const res = await fetch(`${API_BASE}/brand-voice`);

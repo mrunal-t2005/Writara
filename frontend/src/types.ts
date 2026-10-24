@@ -77,3 +77,41 @@ export interface AnalyticsData {
   hours_saved: number;
   content_type_breakdown: Record<string, number>;
 }
+
+export interface SeoKeywordMetric {
+  keyword: string;
+  is_primary: boolean;
+  count: number;
+  density: string;
+  density_num: number;
+  in_title: boolean;
+  in_first_100_words: boolean;
+  in_headings: boolean;
+  status: 'optimal' | 'underused' | 'stuffed';
+}
+
+export interface SeoCheck {
+  item: string;
+  status: 'pass' | 'warning' | 'fail';
+  impact: string;
+}
+
+export interface SeoAnalysisResult {
+  seo_score: number;
+  meta_title: string;
+  meta_title_length: number;
+  meta_description: string;
+  meta_description_length: number;
+  serp_url: string;
+  word_count: number;
+  headings: {
+    h1: string[];
+    h2: string[];
+    h3: string[];
+    total_headings: number;
+  };
+  keywords: SeoKeywordMetric[];
+  checks: SeoCheck[];
+  schema_json_ld: string;
+}
+

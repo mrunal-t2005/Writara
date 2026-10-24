@@ -8,7 +8,8 @@ import {
   FileSearch,
   FolderKanban,
   Sparkles,
-  Settings
+  Settings,
+  Globe
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -62,6 +63,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: FileSearch,
       badge: 'Radar',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'seo',
+      label: 'SEO & SERP Suite',
+      icon: Globe,
+      badge: 'Rank',
+      badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
     },
     {
       id: 'documents',

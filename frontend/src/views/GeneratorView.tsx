@@ -14,7 +14,8 @@ import {
   Layers,
   Radio,
   Clock,
-  BookOpen
+  BookOpen,
+  Globe
 } from 'lucide-react';
 import { BrandVoice, ContentTemplate, QualityMetrics } from '../types';
 import { generateContent, createDocument } from '../services/api';
@@ -25,6 +26,7 @@ interface GeneratorViewProps {
   activeVoiceId: string;
   onRepurpose: (text: string) => void;
   onAuditQuality: (text: string, prompt: string) => void;
+  onAuditSeo?: (text: string, keyword: string) => void;
   onEditInStudio: (text: string, title: string) => void;
 }
 
@@ -34,6 +36,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
   activeVoiceId,
   onRepurpose,
   onAuditQuality,
+  onAuditSeo,
   onEditInStudio,
 }) => {
   const [topic, setTopic] = useState('');
@@ -479,6 +482,16 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                     <FileSearch className="w-3.5 h-3.5" />
                     <span>Quality Audit</span>
                   </button>
+                  {onAuditSeo && (
+                    <button
+                      onClick={() => onAuditSeo(output, keywords[0] || topic.slice(0, 30))}
+                      title="Simulate Google SERP snippet and keyword density"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-500/20 text-xs font-semibold transition-all hover:scale-105"
+                    >
+                      <Globe className="w-3.5 h-3.5" />
+                      <span>SEO & SERP</span>
+                    </button>
+                  )}
                   <button
                     onClick={() => onEditInStudio(output, docTitle || topic)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/30 hover:bg-violet-600/30 text-xs font-semibold transition-all hover:scale-105"

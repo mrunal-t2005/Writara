@@ -75,3 +75,12 @@ class DocumentUpdateRequest(BaseModel):
     project_id: Optional[str] = None
     tags: Optional[List[str]] = None
     quality_score: Optional[float] = None
+
+class SeoAnalyzeRequest(BaseModel):
+    content: str
+    target_keyword: Optional[str] = ""
+    secondary_keywords: Optional[List[str]] = []
+    slug: Optional[str] = ""
+    site_url: Optional[str] = "https://example.com"
+    api_key: Optional[str] = None
+

@@ -483,3 +483,171 @@ def mock_quality_evaluation(text: str, prompt: str = "") -> Dict[str, Any]:
             "Verify cited figures or statistics before final client sign-off." if len(factual_claims) > 1 else "Content reads clearly with no unsupported assertions."
         ]
     }
+
+def analyze_seo(
+    content: str,
+    target_keyword: str = "",
+    secondary_keywords: Optional[List[str]] = None,
+    slug: str = "",
+    site_url: str = "https://writara.app"
+) -> Dict[str, Any]:
+    """Perform comprehensive SEO audit, SERP simulation, and keyword prominence analysis."""
+    if secondary_keywords is None:
+        secondary_keywords = []
+
+    words = [w.strip() for w in re.split(r'\s+', content) if w.strip()]
+    total_words = max(len(words), 1)
+
+    # Extract Title (from first H1 or first non-empty line)
+    h1_match = re.search(r'^#\s+(.+)$', content, re.MULTILINE)
+    h2_matches = re.findall(r'^##\s+(.+)$', content, re.MULTILINE)
+    h3_matches = re.findall(r'^###\s+(.+)$', content, re.MULTILINE)
+
+    first_line = content.strip().split("\n")[0].replace("#", "").strip() if content.strip() else "Untitled Page"
+    meta_title = h1_match.group(1).strip() if h1_match else first_line[:60]
+    if len(meta_title) > 60:
+        meta_title = meta_title[:57] + "..."
+
+    # Extract Meta Description (from first standard paragraph)
+    paragraphs = [p.strip() for p in content.split("\n\n") if p.strip() and not p.strip().startswith("#")]
+    first_para = paragraphs[0] if paragraphs else content[:160]
+    clean_desc = re.sub(r'[*_`#]', '', first_para).strip()
+    meta_description = clean_desc[:155] + ("..." if len(clean_desc) > 155 else "")
+
+    # Slug generation
+    page_slug = slug or re.sub(r'[^a-z0-9]+', '-', meta_title.lower()).strip('-')
+    serp_url = f"{site_url.rstrip('/')}/{page_slug}"
+
+    # Target keyword analysis
+    first_100_words = " ".join(words[:100]).lower()
+    content_lower = content.lower()
+    all_headings = " ".join([meta_title] + h2_matches + h3_matches).lower()
+
+    kw_list = []
+    candidates = []
+    if target_keyword:
+        candidates.append((target_keyword, True))
+    for sk in secondary_keywords:
+        if sk and sk != target_keyword:
+            candidates.append((sk, False))
+
+    # If no keyword provided, extract top 3 high-frequency content words
+    if not candidates:
+        from collections import Counter
+        stop_words = {"the", "and", "for", "with", "that", "this", "from", "your", "have", "will", "more", "into", "their"}
+        meaningful = [w.lower() for w in re.findall(r'\b[a-zA-Z]{4,}\b', content) if w.lower() not in stop_words]
+        top_candidates = Counter(meaningful).most_common(3)
+        for kw, _ in top_candidates:
+            candidates.append((kw, len(candidates) == 0))
+
+    kw_metrics = []
+    for kw, is_primary in candidates:
+        pattern = r'\b' + re.escape(kw.lower()) + r'\b'
+        count = len(re.findall(pattern, content_lower))
+        density = round((count / total_words) * 100, 2)
+        in_title = bool(re.search(pattern, meta_title.lower()))
+        in_first_100 = bool(re.search(pattern, first_100_words))
+        in_headings = bool(re.search(pattern, all_headings))
+
+        kw_metrics.append({
+            "keyword": kw,
+            "is_primary": is_primary,
+            "count": count,
+            "density": f"{density}%",
+            "density_num": density,
+            "in_title": in_title,
+            "in_first_100_words": in_first_100,
+            "in_headings": in_headings,
+            "status": "optimal" if 0.8 <= density <= 2.5 else ("underused" if density < 0.8 else "stuffed")
+        })
+
+    # Checklist & Scoring
+    checks = []
+    seo_score = 100
+
+    # 1. Content Length
+    if total_words >= 800:
+        checks.append({"item": "Comprehensive Word Count (800+ words)", "status": "pass", "impact": "High"})
+    elif total_words >= 300:
+        checks.append({"item": "Standard Word Count (300-800 words)", "status": "pass", "impact": "Medium"})
+    else:
+        checks.append({"item": "Thin Content (Under 300 words recommended)", "status": "fail", "impact": "High"})
+        seo_score -= 20
+
+    # 2. Title Tag Check
+    if 40 <= len(meta_title) <= 60:
+        checks.append({"item": "Optimal Meta Title Length (40-60 characters)", "status": "pass", "impact": "Medium"})
+    else:
+        checks.append({"item": f"Title Tag Length ({len(meta_title)} chars - ideal is 45-60)", "status": "warning", "impact": "Medium"})
+        seo_score -= 10
+
+    # 3. Meta Description Check
+    if 120 <= len(meta_description) <= 160:
+        checks.append({"item": "Optimal Meta Description (120-160 characters)", "status": "pass", "impact": "Medium"})
+    else:
+        checks.append({"item": f"Meta Description Length ({len(meta_description)} chars - ideal is 120-160)", "status": "warning", "impact": "Medium"})
+        seo_score -= 10
+
+    # 4. Heading Structure
+    if h1_match and len(re.findall(r'^#\s+', content, re.MULTILINE)) == 1:
+        checks.append({"item": "Single H1 Tag Present", "status": "pass", "impact": "High"})
+    else:
+        checks.append({"item": "Missing or multiple H1 headings (use exactly one H1)", "status": "fail", "impact": "High"})
+        seo_score -= 15
+
+    if len(h2_matches) >= 2:
+        checks.append({"item": f"Well-structured subheadings ({len(h2_matches)} H2 tags)", "status": "pass", "impact": "Medium"})
+    else:
+        checks.append({"item": "Add more H2 subheadings to break up content", "status": "warning", "impact": "Low"})
+        seo_score -= 10
+
+    # 5. Keyword Prominence (Primary Keyword)
+    primary_kw = kw_metrics[0] if kw_metrics else None
+    if primary_kw:
+        if primary_kw["in_title"]:
+            checks.append({"item": f"Primary keyword '{primary_kw['keyword']}' appears in Title", "status": "pass", "impact": "High"})
+        else:
+            checks.append({"item": f"Include primary keyword '{primary_kw['keyword']}' in Title", "status": "fail", "impact": "High"})
+            seo_score -= 15
+
+        if primary_kw["in_first_100_words"]:
+            checks.append({"item": "Primary keyword present in intro paragraph (first 100 words)", "status": "pass", "impact": "Medium"})
+        else:
+            checks.append({"item": "Include primary keyword in opening paragraph", "status": "warning", "impact": "Medium"})
+            seo_score -= 10
+
+    seo_score = max(25, min(100, seo_score))
+
+    # Schema JSON-LD Article
+    schema_json_ld = {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": meta_title,
+        "description": meta_description,
+        "url": serp_url,
+        "wordCount": total_words,
+        "author": {
+            "@type": "Organization",
+            "name": "Writara Studio"
+        }
+    }
+
+    return {
+        "seo_score": seo_score,
+        "meta_title": meta_title,
+        "meta_title_length": len(meta_title),
+        "meta_description": meta_description,
+        "meta_description_length": len(meta_description),
+        "serp_url": serp_url,
+        "word_count": total_words,
+        "headings": {
+            "h1": [meta_title],
+            "h2": h2_matches,
+            "h3": h3_matches,
+            "total_headings": 1 + len(h2_matches) + len(h3_matches)
+        },
+        "keywords": kw_metrics,
+        "checks": checks,
+        "schema_json_ld": json.dumps(schema_json_ld, indent=2)
+    }
+

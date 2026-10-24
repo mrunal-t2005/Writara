@@ -19,7 +19,8 @@ from models import (
     BrandVoiceAnalyzeRequest,
     ProjectCreateRequest,
     DocumentCreateRequest,
-    DocumentUpdateRequest
+    DocumentUpdateRequest,
+    SeoAnalyzeRequest
 )
 from services.ai_service import (
     call_gemini,
@@ -27,7 +28,8 @@ from services.ai_service import (
     generate_mock_repurpose,
     mock_quality_evaluation,
     calculate_readability,
-    extract_factual_claims
+    extract_factual_claims,
+    analyze_seo
 )
 
 app = FastAPI(
@@ -250,6 +252,44 @@ Provide:
             metrics["ai_editorial_review"] = gemini_feedback
 
     return metrics
+
+# ----------------- 4B. Interactive SEO Suite & SERP Audit -----------------
+@app.post("/api/seo/analyze")
+async def analyze_seo_endpoint(req: SeoAnalyzeRequest):
+    result = analyze_seo(
+        content=req.content,
+        target_keyword=req.target_keyword or "",
+        secondary_keywords=req.secondary_keywords or [],
+        slug=req.slug or "",
+        site_url=req.site_url or "https://writara.app"
+    )
+
+    # Optional Gemini enhancement for meta tags
+    if req.api_key or os.getenv("GEMINI_API_KEY"):
+        prompt = f"""Act as a top-tier SEO specialist. Generate an ultra-high CTR meta title (under 60 chars) and compelling meta description (under 155 chars) targeting '{req.target_keyword}'.
+Content:
+{req.content[:1500]}
+
+Format JSON:
+{{
+  "optimized_title": "...",
+  "optimized_description": "..."
+}}"""
+        gemini_seo = await call_gemini(prompt, api_key=req.api_key or "")
+        if gemini_seo:
+            try:
+                clean_json = gemini_seo.strip().replace("```json", "").replace("```", "").strip()
+                parsed = json.loads(clean_json)
+                if "optimized_title" in parsed:
+                    result["meta_title"] = parsed["optimized_title"]
+                    result["meta_title_length"] = len(parsed["optimized_title"])
+                if "optimized_description" in parsed:
+                    result["meta_description"] = parsed["optimized_description"]
+                    result["meta_description_length"] = len(parsed["optimized_description"])
+            except Exception:
+                pass
+
+    return result
 
 # ----------------- 5. Brand Voice Memory -----------------
 @app.get("/api/brand-voice")

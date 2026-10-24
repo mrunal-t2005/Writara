@@ -8,6 +8,7 @@ import { EditorView } from './views/EditorView';
 import { RepurposerView } from './views/RepurposerView';
 import { BrandVoiceView } from './views/BrandVoiceView';
 import { QualityEvaluatorView } from './views/QualityEvaluatorView';
+import { SeoView } from './views/SeoView';
 import { DocumentsView } from './views/DocumentsView';
 import { BrandVoice, ContentTemplate, Document } from './types';
 import { getBrandVoices, checkHealth } from './services/api';
@@ -22,6 +23,7 @@ export function App() {
   const [selectedTemplate, setSelectedTemplate] = useState<ContentTemplate | null>(null);
   const [repurposeSource, setRepurposeSource] = useState('');
   const [auditSource, setAuditSource] = useState<{ text: string; prompt: string }>({ text: '', prompt: '' });
+  const [seoSource, setSeoSource] = useState<{ text: string; keyword: string }>({ text: '', keyword: '' });
   const [editorDoc, setEditorDoc] = useState<{ text: string; title: string; id?: string }>({
     text: '',
     title: 'Untitled Draft',
@@ -58,6 +60,11 @@ export function App() {
   const handleAuditHandoff = (text: string, prompt: string = '') => {
     setAuditSource({ text, prompt });
     setActiveTab('evaluator');
+  };
+
+  const handleSeoHandoff = (text: string, keyword: string = '') => {
+    setSeoSource({ text, keyword });
+    setActiveTab('seo');
   };
 
   const handleEditHandoff = (text: string, title: string = 'Untitled Draft', docId?: string) => {
@@ -113,6 +120,7 @@ export function App() {
               activeVoiceId={activeVoiceId}
               onRepurpose={handleRepurposeHandoff}
               onAuditQuality={handleAuditHandoff}
+              onAuditSeo={handleSeoHandoff}
               onEditInStudio={handleEditHandoff}
             />
           )}
@@ -148,6 +156,14 @@ export function App() {
             <QualityEvaluatorView
               initialContent={auditSource.text}
               initialPrompt={auditSource.prompt}
+              onEditInStudio={handleEditHandoff}
+            />
+          )}
+
+          {activeTab === 'seo' && (
+            <SeoView
+              initialContent={seoSource.text}
+              initialKeyword={seoSource.keyword}
               onEditInStudio={handleEditHandoff}
             />
           )}
