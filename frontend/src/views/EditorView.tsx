@@ -15,6 +15,7 @@ import {
   FileText
 } from 'lucide-react';
 import { smartEdit, createDocument, updateDocument } from '../services/api';
+import { ExportModal } from '../components/ExportModal';
 import { Document } from '../types';
 
 interface EditorViewProps {
@@ -40,6 +41,7 @@ export const EditorView: React.FC<EditorViewProps> = ({
   const [targetLang, setTargetLang] = useState('Spanish');
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const words = content.trim().split(/\s+/).filter(Boolean).length;
   const chars = content.length;
@@ -164,11 +166,11 @@ export const EditorView: React.FC<EditorViewProps> = ({
           </button>
 
           <button
-            onClick={handleDownload}
+            onClick={() => setShowExportModal(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-medium transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Download</span>
+            <span>Export (DOCX, PDF, MD)</span>
           </button>
 
           <button
@@ -326,6 +328,13 @@ export const EditorView: React.FC<EditorViewProps> = ({
           </div>
         </div>
       </div>
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title={title}
+        content={content}
+      />
     </div>
   );
 };

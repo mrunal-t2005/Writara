@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { BrandVoice, ContentTemplate, QualityMetrics } from '../types';
 import { generateContent, createDocument } from '../services/api';
+import { ExportModal } from '../components/ExportModal';
 
 interface GeneratorViewProps {
   selectedTemplate: ContentTemplate | null;
@@ -57,6 +58,7 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const [docTitle, setDocTitle] = useState('');
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Sync when template changes
   useEffect(() => {
@@ -449,11 +451,11 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
                     <span>{copied ? 'Copied' : 'Copy'}</span>
                   </button>
                   <button
-                    onClick={handleDownload}
+                    onClick={() => setShowExportModal(true)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" />
-                    <span>Download (.md)</span>
+                    <span>Export (DOCX, PDF, MD)</span>
                   </button>
                   <button
                     onClick={handleSaveDocument}
@@ -505,6 +507,13 @@ export const GeneratorView: React.FC<GeneratorViewProps> = ({
           </div>
         </div>
       </div>
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title={docTitle || topic}
+        content={output}
+      />
     </div>
   );
 };
