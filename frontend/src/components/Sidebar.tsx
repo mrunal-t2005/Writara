@@ -10,7 +10,9 @@ import {
   Sparkles,
   Settings,
   Globe,
-  Flame
+  Flame,
+  Calendar,
+  BarChart3
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -78,6 +80,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Flame,
       badge: 'Viral',
       badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
+    },
+    {
+      id: 'calendar',
+      label: 'Content Calendar',
+      icon: Calendar,
+      badge: 'Schedule',
+      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics & Velocity',
+      icon: BarChart3,
+      badge: null,
     },
     {
       id: 'documents',

@@ -75,8 +75,25 @@ export interface AnalyticsData {
   total_documents: number;
   total_generations: number;
   hours_saved: number;
+  cost_saved?: number;
+  avg_quality_score?: number;
+  total_scheduled_posts?: number;
   content_type_breakdown: Record<string, number>;
+  platform_breakdown?: Record<string, number>;
 }
+
+export interface ScheduledPost {
+  id: string;
+  title: string;
+  content: string;
+  platform: 'linkedin' | 'twitter' | 'instagram' | 'email' | 'blog' | 'youtube' | string;
+  scheduled_date: string;
+  scheduled_time: string;
+  status: 'draft' | 'scheduled' | 'published';
+  created_at: string;
+  updated_at: string;
+}
+
 
 export interface SeoKeywordMetric {
   keyword: string;

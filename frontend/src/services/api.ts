@@ -245,3 +245,42 @@ export async function getAnalytics(): Promise<AnalyticsData> {
   if (!res.ok) throw new Error('Failed to fetch analytics');
   return res.json();
 }
+
+// Calendar
+export async function getCalendarPosts(): Promise<import('../types').ScheduledPost[]> {
+  const res = await fetch(`${API_BASE}/calendar/posts`);
+  if (!res.ok) throw new Error('Failed to fetch calendar posts');
+  return res.json();
+}
+
+export async function createCalendarPost(post: {
+  title: string;
+  content: string;
+  platform: string;
+  scheduled_date: string;
+  scheduled_time?: string;
+  status?: string;
+}): Promise<{ id: string }> {
+  const res = await fetch(`${API_BASE}/calendar/posts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(post),
+  });
+  if (!res.ok) throw new Error('Failed to schedule post');
+  return res.json();
+}
+
+export async function updateCalendarPost(id: string, updates: Partial<import('../types').ScheduledPost>): Promise<void> {
+  const res = await fetch(`${API_BASE}/calendar/posts/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) throw new Error('Failed to update calendar post');
+}
+
+export async function deleteCalendarPost(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/calendar/posts/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('Failed to delete calendar post');
+}
+

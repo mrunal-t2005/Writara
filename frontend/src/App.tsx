@@ -10,6 +10,8 @@ import { BrandVoiceView } from './views/BrandVoiceView';
 import { QualityEvaluatorView } from './views/QualityEvaluatorView';
 import { SeoView } from './views/SeoView';
 import { HeadlineAbView } from './views/HeadlineAbView';
+import { CalendarView } from './views/CalendarView';
+import { AnalyticsView } from './views/AnalyticsView';
 import { DocumentsView } from './views/DocumentsView';
 import { BrandVoice, ContentTemplate, Document } from './types';
 import { getBrandVoices, checkHealth } from './services/api';
@@ -195,6 +197,19 @@ export function App() {
               initialTopic={abTopic}
               onUseHeadline={handleUseHeadline}
               onEditInStudio={handleEditHandoff}
+            />
+          )}
+
+          {activeTab === 'calendar' && (
+            <CalendarView
+              onEditInStudio={handleEditHandoff}
+              onRepurpose={handleRepurposeHandoff}
+            />
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsView
+              setActiveTab={setActiveTab}
             />
           )}
 

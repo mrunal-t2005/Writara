@@ -78,6 +78,21 @@ def init_db():
     )
     """)
 
+    # Scheduled Calendar Posts
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS scheduled_posts (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        scheduled_date TEXT NOT NULL,
+        scheduled_time TEXT DEFAULT '10:00 AM',
+        status TEXT DEFAULT 'scheduled',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """)
+
     # Seed default project if empty
     cursor.execute("SELECT COUNT(*) FROM projects")
     if cursor.fetchone()[0] == 0:
@@ -105,6 +120,24 @@ def init_db():
             now,
             now
         ))
+
+    # Seed initial calendar posts if empty
+    cursor.execute("SELECT COUNT(*) FROM scheduled_posts")
+    if cursor.fetchone()[0] == 0:
+        now = datetime.utcnow().isoformat()
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        cursor.execute("""
+        INSERT INTO scheduled_posts (id, title, content, platform, scheduled_date, scheduled_time, status, created_at, updated_at)
+        VALUES 
+        (?, ?, ?, ?, ?, ?, ?, ?, ?),
+        (?, ?, ?, ?, ?, ?, ?, ?, ?),
+        (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            "post-1", "AI Automation Roadmap for Founders", "Here is our 5-pillar execution guide to reducing operational bottlenecks with AI in 2026.", "linkedin", today, "09:30 AM", "scheduled", now, now,
+            "post-2", "Weekly Thought Leadership Digest", "Issue #42: How high-performing product teams ship 3x faster without burnout.", "email", today, "02:00 PM", "scheduled", now, now,
+            "post-3", "Shorts Breakdown: 3 AI Writing Hacks", "Stop rewriting the same prompts from scratch: use this 3-step prompt framework.", "youtube", today, "06:00 PM", "published", now, now
+        ))
+
 
     conn.commit()
     conn.close()

@@ -94,4 +94,21 @@ class ClicheScanRequest(BaseModel):
     text: str
     api_key: Optional[str] = None
 
+class ScheduledPostCreateRequest(BaseModel):
+    title: str
+    content: str
+    platform: str
+    scheduled_date: str
+    scheduled_time: Optional[str] = "10:00 AM"
+    status: Optional[str] = "scheduled"
+
+class ScheduledPostUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    platform: Optional[str] = None
+    scheduled_date: Optional[str] = None
+    scheduled_time: Optional[str] = None
+    status: Optional[str] = None
+
+
 
