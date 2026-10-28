@@ -18,6 +18,9 @@ import { getBrandVoices, checkHealth } from './services/api';
 
 export function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('writara_theme') as 'dark' | 'light') || 'light';
+  });
   const [brandVoices, setBrandVoices] = useState<BrandVoice[]>([]);
   const [activeVoiceId, setActiveVoiceId] = useState('');
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
@@ -49,6 +52,21 @@ export function App() {
   useEffect(() => {
     loadVoices();
   }, []);
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.classList.add('light');
+      document.body.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+      document.body.classList.remove('light');
+    }
+    localStorage.setItem('writara_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   // Handlers for cross-module handoffs
   const handleSelectTemplate = (template: ContentTemplate) => {
@@ -116,6 +134,8 @@ export function App() {
         setActiveVoiceId={setActiveVoiceId}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         onNewDraft={handleNewDraft}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Layout Area */}

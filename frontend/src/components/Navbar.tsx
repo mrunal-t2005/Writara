@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Key, Plus, CheckCircle2, Sliders, ShieldCheck } from 'lucide-react';
+import React from 'react';
+import { Sparkles, Key, Plus, CheckCircle2, Sliders, Sun, Moon } from 'lucide-react';
 import { BrandVoice } from '../types';
 import { getApiKey } from '../services/api';
 
@@ -11,6 +11,8 @@ interface NavbarProps {
   setActiveVoiceId: (id: string) => void;
   onOpenApiKeyModal: () => void;
   onNewDraft: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,6 +22,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveVoiceId,
   onOpenApiKeyModal,
   onNewDraft,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   const hasKey = !!getApiKey();
   const activeVoice = brandVoices.find(v => v.id === activeVoiceId) || brandVoices[0];
@@ -83,6 +87,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
           {hasKey && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
         </button>
+
+        {/* Light/Dark Mode Switcher */}
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode (White Background)'}
+            className="flex items-center justify-center w-8 h-8 rounded-lg border border-slate-700/80 bg-slate-800/40 hover:bg-slate-800 text-slate-300 hover:text-white transition-all"
+          >
+            {theme === 'light' ? (
+              <Moon className="w-4 h-4 text-violet-400" />
+            ) : (
+              <Sun className="w-4 h-4 text-amber-400" />
+            )}
+          </button>
+        )}
 
         {/* Quick New Draft Button */}
         <button

@@ -58,3 +58,162 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* -------------------------------------------------------------
+   LIGHT THEME MODE (Clean White Academic & Day-Mode Presentation)
+   ------------------------------------------------------------- */
+html.light, body.light, .light {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light .min-h-screen {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light header {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+.light aside {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e2e8f0 !important;
+}
+
+.light main {
+  background: #f8fafc !important;
+}
+
+.light .glass-panel {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.05) !important;
+}
+
+.light .glass-card {
+  background: #ffffff !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px -1px rgba(15, 23, 42, 0.04) !important;
+}
+
+.light .glass-card:hover {
+  background: #ffffff !important;
+  border-color: #a78bfa !important;
+  box-shadow: 0 10px 20px -3px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* Dark background overrides */
+.light [class*="bg-[#0b0d14]"],
+.light [class*="bg-[#0d101a]"],
+.light [class*="bg-[#0e121e]"],
+.light [class*="bg-slate-950"],
+.light [class*="bg-slate-900"],
+.light [class*="bg-slate-850"] {
+  background-color: #ffffff !important;
+}
+
+.light [class*="bg-slate-800"] {
+  background-color: #f1f5f9 !important;
+}
+
+/* Background gradients */
+.light [class*="bg-gradient-to-b"] {
+  background-image: none !important;
+  background-color: #f8fafc !important;
+}
+
+.light [class*="from-violet-950"] {
+  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 50%, #eff6ff 100%) !important;
+  border-color: #ddd6fe !important;
+  box-shadow: 0 10px 25px -5px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* Border overrides */
+.light [class*="border-slate-800"],
+.light [class*="border-slate-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Text color overrides */
+.light .text-white,
+.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+.light .text-slate-400 {
+  color: #64748b !important;
+}
+
+.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Inputs, Textareas, Selects */
+.light input,
+.light textarea,
+.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1 !important;
+}
+
+.light input:focus,
+.light textarea:focus,
+.light select:focus {
+  border-color: #8b5cf6 !important;
+  outline: 2px solid rgba(139, 92, 246, 0.2) !important;
+}
+
+.light select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Nav & pill badges */
+.light .bg-slate-900\/90,
+.light .bg-slate-900\/80 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Sidebar buttons */
+.light aside button {
+  color: #475569 !important;
+}
+
+.light aside button:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+.light aside button[class*="bg-violet"] {
+  background-color: #ede9fe !important;
+  color: #6d28d9 !important;
+  border-color: #ddd6fe !important;
+}
+
+/* Custom scrollbar in light mode */
+.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
