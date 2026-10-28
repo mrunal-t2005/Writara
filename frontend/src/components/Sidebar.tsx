@@ -9,7 +9,8 @@ import {
   FolderKanban,
   Sparkles,
   Settings,
-  Globe
+  Globe,
+  Flame
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -70,6 +71,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       icon: Globe,
       badge: 'Rank',
       badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+    },
+    {
+      id: 'headlines',
+      label: 'Headline A/B & Clichés',
+      icon: Flame,
+      badge: 'Viral',
+      badgeColor: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
     },
     {
       id: 'documents',

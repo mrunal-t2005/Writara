@@ -120,6 +120,32 @@ export async function analyzeSeo(params: {
   return res.json();
 }
 
+export async function generateAbHeadlines(params: {
+  topic: string;
+  content_summary?: string;
+  target_audience?: string;
+}): Promise<{ headlines: import('../types').HeadlineVariation[] }> {
+  const apiKey = getApiKey();
+  const res = await fetch(`${API_BASE}/headlines/ab-test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...params, api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error('Failed to generate A/B headlines');
+  return res.json();
+}
+
+export async function scanCliches(text: string): Promise<import('../types').ClicheScanResult> {
+  const apiKey = getApiKey();
+  const res = await fetch(`${API_BASE}/cliches/scan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, api_key: apiKey }),
+  });
+  if (!res.ok) throw new Error('Failed to scan AI clichés');
+  return res.json();
+}
+
 // Brand Voice
 export async function getBrandVoices(): Promise<BrandVoice[]> {
   const res = await fetch(`${API_BASE}/brand-voice`);

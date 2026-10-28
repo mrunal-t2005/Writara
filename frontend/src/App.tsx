@@ -9,6 +9,7 @@ import { RepurposerView } from './views/RepurposerView';
 import { BrandVoiceView } from './views/BrandVoiceView';
 import { QualityEvaluatorView } from './views/QualityEvaluatorView';
 import { SeoView } from './views/SeoView';
+import { HeadlineAbView } from './views/HeadlineAbView';
 import { DocumentsView } from './views/DocumentsView';
 import { BrandVoice, ContentTemplate, Document } from './types';
 import { getBrandVoices, checkHealth } from './services/api';
@@ -24,6 +25,7 @@ export function App() {
   const [repurposeSource, setRepurposeSource] = useState('');
   const [auditSource, setAuditSource] = useState<{ text: string; prompt: string }>({ text: '', prompt: '' });
   const [seoSource, setSeoSource] = useState<{ text: string; keyword: string }>({ text: '', keyword: '' });
+  const [abTopic, setAbTopic] = useState('');
   const [editorDoc, setEditorDoc] = useState<{ text: string; title: string; id?: string }>({
     text: '',
     title: 'Untitled Draft',
@@ -65,6 +67,26 @@ export function App() {
   const handleSeoHandoff = (text: string, keyword: string = '') => {
     setSeoSource({ text, keyword });
     setActiveTab('seo');
+  };
+
+  const handleUseHeadline = (headline: string) => {
+    if (editorDoc.text) {
+      setEditorDoc({ ...editorDoc, title: headline });
+      setActiveTab('editor');
+    } else {
+      setSelectedTemplate({
+        id: 'ab-headline',
+        title: headline,
+        description: 'Generated from A/B Headline Matrix',
+        category: 'blog',
+        icon: 'Flame',
+        contentType: 'blog_post',
+        defaultPrompt: headline,
+        tone: 'Thought-Provoking & Engaging',
+        audience: 'General Audience'
+      });
+      setActiveTab('generator');
+    }
   };
 
   const handleEditHandoff = (text: string, title: string = 'Untitled Draft', docId?: string) => {
@@ -164,6 +186,14 @@ export function App() {
             <SeoView
               initialContent={seoSource.text}
               initialKeyword={seoSource.keyword}
+              onEditInStudio={handleEditHandoff}
+            />
+          )}
+
+          {activeTab === 'headlines' && (
+            <HeadlineAbView
+              initialTopic={abTopic}
+              onUseHeadline={handleUseHeadline}
               onEditInStudio={handleEditHandoff}
             />
           )}

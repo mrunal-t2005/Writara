@@ -115,3 +115,29 @@ export interface SeoAnalysisResult {
   schema_json_ld: string;
 }
 
+export interface HeadlineVariation {
+  angle: string;
+  headline: string;
+  ctr_score: number;
+  emotional_hook: string;
+  rationale: string;
+  type?: string;
+  char_count?: number;
+  word_count?: number;
+}
+
+export interface ClicheFinding {
+  cliche: string;
+  occurrences: number;
+  suggestion: string;
+  severity: 'high' | 'medium' | 'low';
+}
+
+export interface ClicheScanResult {
+  originality_score: number;
+  cliches_found_count: number;
+  verdict: string;
+  findings: ClicheFinding[];
+}
+
+

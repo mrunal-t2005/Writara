@@ -651,3 +651,102 @@ def analyze_seo(
         "schema_json_ld": json.dumps(schema_json_ld, indent=2)
     }
 
+def generate_ab_headlines(topic: str, content_summary: str = "", audience: str = "Creators") -> List[Dict[str, Any]]:
+    """Generate 5 distinct high-converting headline variations with CTR potential scores."""
+    clean_topic = topic.strip().title()
+    if clean_topic.endswith("."):
+        clean_topic = clean_topic[:-1]
+
+    angles = [
+        {
+            "angle": "How-To / Tactical Blueprint",
+            "headline": f"How to Master {clean_topic} in 2026 (Without the Headaches)",
+            "ctr_score": 93,
+            "emotional_hook": "Curiosity & High Utility",
+            "rationale": "Clear promise of competence paired with friction reduction.",
+            "type": "how_to"
+        },
+        {
+            "angle": "Contrarian / Myth-Buster",
+            "headline": f"Why Almost Everything You Were Told About {clean_topic} Is Wrong",
+            "ctr_score": 96,
+            "emotional_hook": "Pattern-Interrupt & Intrigue",
+            "rationale": "Challenges conventional wisdom, forcing readers to stop scrolling.",
+            "type": "contrarian"
+        },
+        {
+            "angle": "Data-Driven / Numbers",
+            "headline": f"7 Data-Backed Rules for {clean_topic} That Drive 3x Faster Growth",
+            "ctr_score": 91,
+            "emotional_hook": "Specific ROI & Certainty",
+            "rationale": "Specific numbers trigger analytical credibility and perceived value.",
+            "type": "data_driven"
+        },
+        {
+            "angle": "High-Stakes / FOMO",
+            "headline": f"The Cost of Ignoring {clean_topic}: What Top {audience} Know Now",
+            "ctr_score": 88,
+            "emotional_hook": "Urgency & Social Proof",
+            "rationale": "Highlights competitive risk and industry benchmark gap.",
+            "type": "urgency"
+        },
+        {
+            "angle": "The Ultimate Transformation",
+            "headline": f"The Zero-to-One Guide to {clean_topic} for High-Output {audience}",
+            "ctr_score": 89,
+            "emotional_hook": "Aspirational Identity",
+            "rationale": "Directly speaks to self-image and status elevation.",
+            "type": "transformation"
+        }
+    ]
+
+    for a in angles:
+        a["char_count"] = len(a["headline"])
+        a["word_count"] = len(a["headline"].split())
+
+    return angles
+
+def scan_ai_cliches(text: str) -> Dict[str, Any]:
+    """Scan text for robotic AI tropes, overused buzzwords, and compute human-voice originality score."""
+    cliche_database = [
+        {"phrase": r"\bin today'?s (?:fast-paced|ever-evolving|digital) (?:world|landscape)\b", "name": "In today's fast-paced world", "suggestion": "Specify the exact modern shift or jump straight into the hook.", "penalty": 15},
+        {"phrase": r"\bdelve into\b", "name": "Delve into", "suggestion": "Replace with 'explore', 'examine', 'break down', or 'analyze'.", "penalty": 12},
+        {"phrase": r"\btestament to\b", "name": "Testament to", "suggestion": "Use 'proof of', 'evidence that', or 'demonstrates'.", "penalty": 10},
+        {"phrase": r"\bunlock(?:ing)? (?:the|its)? power\b", "name": "Unlock the power of", "suggestion": "Replace with 'use', 'apply', or 'leverage'.", "penalty": 10},
+        {"phrase": r"\bseamlessly integrate\b", "name": "Seamlessly integrate", "suggestion": "Say 'connects easily with' or 'works with'.", "penalty": 8},
+        {"phrase": r"\bgame-?changer\b", "name": "Game-changer", "suggestion": "State the concrete benefit instead of vague hype.", "penalty": 10},
+        {"phrase": r"\btapestry of\b", "name": "Tapestry of", "suggestion": "Use 'collection', 'spectrum', or 'blend'.", "penalty": 12},
+        {"phrase": r"\bbeacon of\b", "name": "Beacon of", "suggestion": "Say 'prime example' or 'leader'.", "penalty": 10},
+        {"phrase": r"\bpivotal role\b", "name": "Pivotal role", "suggestion": "Say 'vital role' or explain the specific impact.", "penalty": 8},
+        {"phrase": r"\bnavigat(?:e|ing) the complexities\b", "name": "Navigating the complexities", "suggestion": "Say 'managing', 'handling', or 'solving'.", "penalty": 10},
+        {"phrase": r"\bfurthermore, it is important to (?:note|remember)\b", "name": "Furthermore, it is important to note", "suggestion": "Be direct: 'Crucially,' or remove the filler completely.", "penalty": 12},
+        {"phrase": r"\bsupercharge (?:your)?\b", "name": "Supercharge", "suggestion": "Use 'accelerate', 'boost', or 'increase'.", "penalty": 8},
+        {"phrase": r"\brevolutioniz(?:e|ing)\b", "name": "Revolutionize", "suggestion": "Describe the actual mechanism or performance gain.", "penalty": 8},
+        {"phrase": r"\bcutting-?edge\b", "name": "Cutting-edge", "suggestion": "Use 'modern', 'state-of-the-art', or highlight the technology.", "penalty": 6},
+    ]
+
+    detected = []
+    total_penalty = 0
+
+    for c in cliche_database:
+        matches = list(re.finditer(c["phrase"], text, re.IGNORECASE))
+        if matches:
+            count = len(matches)
+            total_penalty += c["penalty"] * count
+            detected.append({
+                "cliche": c["name"],
+                "occurrences": count,
+                "suggestion": c["suggestion"],
+                "severity": "high" if c["penalty"] >= 12 else "medium"
+            })
+
+    originality_score = max(35, min(100, 100 - total_penalty))
+
+    return {
+        "originality_score": originality_score,
+        "cliches_found_count": len(detected),
+        "verdict": "Authentic & Natural" if originality_score >= 85 else ("Moderate AI Tone" if originality_score >= 65 else "Heavily Synthetic / Robotic"),
+        "findings": detected
+    }
+
+

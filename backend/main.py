@@ -20,7 +20,9 @@ from models import (
     ProjectCreateRequest,
     DocumentCreateRequest,
     DocumentUpdateRequest,
-    SeoAnalyzeRequest
+    SeoAnalyzeRequest,
+    AbTestRequest,
+    ClicheScanRequest
 )
 from services.ai_service import (
     call_gemini,
@@ -29,7 +31,9 @@ from services.ai_service import (
     mock_quality_evaluation,
     calculate_readability,
     extract_factual_claims,
-    analyze_seo
+    analyze_seo,
+    generate_ab_headlines,
+    scan_ai_cliches
 )
 
 app = FastAPI(
@@ -290,6 +294,49 @@ Format JSON:
                 pass
 
     return result
+
+# ----------------- 4C. Headline A/B Testing & AI Cliché Scanner -----------------
+@app.post("/api/headlines/ab-test")
+async def generate_ab_headlines_endpoint(req: AbTestRequest):
+    headlines = generate_ab_headlines(
+        topic=req.topic,
+        content_summary=req.content_summary or "",
+        audience=req.target_audience or "Creators"
+    )
+
+    if req.api_key or os.getenv("GEMINI_API_KEY"):
+        prompt = f"""Generate 5 viral high-CTR headline variations for:
+Topic: {req.topic}
+Target Audience: {req.target_audience or 'General'}
+
+Return ONLY a JSON array of objects with:
+[
+  {{
+    "angle": "e.g. Curiosity / Contrarian",
+    "headline": "...",
+    "ctr_score": 95,
+    "emotional_hook": "...",
+    "rationale": "..."
+  }}
+]"""
+        gemini_res = await call_gemini(prompt, api_key=req.api_key or "")
+        if gemini_res:
+            try:
+                clean_json = gemini_res.strip().replace("```json", "").replace("```", "").strip()
+                parsed = json.loads(clean_json)
+                if isinstance(parsed, list) and len(parsed) >= 3:
+                    for item in parsed:
+                        item["char_count"] = len(item.get("headline", ""))
+                        item["word_count"] = len(item.get("headline", "").split())
+                    return {"headlines": parsed}
+            except Exception:
+                pass
+
+    return {"headlines": headlines}
+
+@app.post("/api/cliches/scan")
+def scan_cliches_endpoint(req: ClicheScanRequest):
+    return scan_ai_cliches(req.text)
 
 # ----------------- 5. Brand Voice Memory -----------------
 @app.get("/api/brand-voice")

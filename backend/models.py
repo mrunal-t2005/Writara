@@ -84,3 +84,14 @@ class SeoAnalyzeRequest(BaseModel):
     site_url: Optional[str] = "https://example.com"
     api_key: Optional[str] = None
 
+class AbTestRequest(BaseModel):
+    topic: str
+    content_summary: Optional[str] = ""
+    target_audience: Optional[str] = ""
+    api_key: Optional[str] = None
+
+class ClicheScanRequest(BaseModel):
+    text: str
+    api_key: Optional[str] = None
+
+
