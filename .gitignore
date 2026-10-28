@@ -51,3 +51,11 @@ frontend/.env
 Thumbs.db
 desktop.ini
 *.tmp
+\
+
+*.docx
+*.doc
+PROJECT_REPORT*
+frontend/screenshots/
+frontend/capture_screenshots.js
+generate_report*.py
