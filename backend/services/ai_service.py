@@ -58,12 +58,13 @@ def calculate_readability(text: str) -> Dict[str, Any]:
     }
 
 async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = "") -> Optional[str]:
-    """Call Google Gemini API if key is available."""
+    """Call Google Gemini API with resilient failover and non-blocking timeout."""
     key = api_key or GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
     if not key:
         return None
     
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
+    # Modern Gemini 2.0 Flash primary endpoint
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}"
     
     payload: Dict[str, Any] = {
         "contents": [
@@ -81,23 +82,29 @@ async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = 
             "parts": [{"text": system_instruction}]
         }
         
+    client_timeout = httpx.Timeout(12.0, connect=4.0)
     try:
-        async with httpx.AsyncClient(timeout=45.0) as client:
+        async with httpx.AsyncClient(timeout=client_timeout) as client:
             resp = await client.post(url, json=payload)
             if resp.status_code == 200:
                 data = resp.json()
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                return text.strip()
-            else:
-                # If 2.5-flash not found or quota, try 2.0-flash or 1.5-flash
-                fallback_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-                resp2 = await client.post(fallback_url, json=payload)
-                if resp2.status_code == 200:
-                    data2 = resp2.json()
-                    return data2["candidates"][0]["content"]["parts"][0]["text"].strip()
-                return None
+                if "candidates" in data and data["candidates"]:
+                    parts = data["candidates"][0].get("content", {}).get("parts", [])
+                    if parts and "text" in parts[0]:
+                        return parts[0]["text"].strip()
+            
+            # Fallback to Gemini 1.5 Flash if 2.0-flash encounters rate limit or is unsupported
+            fallback_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
+            resp2 = await client.post(fallback_url, json=payload)
+            if resp2.status_code == 200:
+                data2 = resp2.json()
+                if "candidates" in data2 and data2["candidates"]:
+                    parts2 = data2["candidates"][0].get("content", {}).get("parts", [])
+                    if parts2 and "text" in parts2[0]:
+                        return parts2[0]["text"].strip()
+            return None
     except Exception as e:
-        print(f"Gemini API error: {e}")
+        print(f"Gemini API network fallback: {e}")
         return None
 
 def extract_factual_claims(text: str) -> List[Dict[str, str]]:
