@@ -57,55 +57,86 @@ def calculate_readability(text: str) -> Dict[str, Any]:
         "avg_words_per_sentence": round(num_words / num_sentences, 1)
     }
 
+
 async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = "") -> Optional[str]:
-    """Call Google Gemini API with resilient failover and non-blocking timeout."""
+    """Call Gemini with primary and backup models and diagnostic logging."""
+
     key = api_key or GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
     if not key:
+        print("Gemini unavailable: API key not configured.")
         return None
-    
-    # Modern Gemini 2.0 Flash primary endpoint
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}"
-    
+
+    models = [
+        "gemini-3.8-flash",
+        "gemini-3.5-flash-lite",
+    ]
+
     payload: Dict[str, Any] = {
-        "contents": [
-            {
-                "parts": [{"text": prompt}]
-            }
-        ],
+        "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {
             "temperature": 0.7,
             "maxOutputTokens": 3000,
-        }
+        },
     }
+
     if system_instruction:
         payload["systemInstruction"] = {
             "parts": [{"text": system_instruction}]
         }
-        
-    client_timeout = httpx.Timeout(12.0, connect=4.0)
+
+    client_timeout = httpx.Timeout(20.0, connect=5.0)
+
     try:
         async with httpx.AsyncClient(timeout=client_timeout) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code == 200:
-                data = resp.json()
-                if "candidates" in data and data["candidates"]:
-                    parts = data["candidates"][0].get("content", {}).get("parts", [])
-                    if parts and "text" in parts[0]:
-                        return parts[0]["text"].strip()
-            
-            # Fallback to Gemini 1.5 Flash if 2.0-flash encounters rate limit or is unsupported
-            fallback_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key}"
-            resp2 = await client.post(fallback_url, json=payload)
-            if resp2.status_code == 200:
-                data2 = resp2.json()
-                if "candidates" in data2 and data2["candidates"]:
-                    parts2 = data2["candidates"][0].get("content", {}).get("parts", [])
-                    if parts2 and "text" in parts2[0]:
-                        return parts2[0]["text"].strip()
-            return None
-    except Exception as e:
-        print(f"Gemini API network fallback: {e}")
+            for model in models:
+                url = (
+                    "https://generativelanguage.googleapis.com/"
+                    f"v1beta/models/{model}:generateContent"
+                    f"?key={key}"
+                )
+
+                try:
+                    resp = await client.post(url, json=payload)
+
+                    if resp.status_code != 200:
+                        print(
+                            f"Gemini {model} failed: "
+                            f"HTTP {resp.status_code}: {resp.text[:500]}"
+                        )
+                        continue
+
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+
+                    if candidates:
+                        parts = (
+                            candidates[0]
+                            .get("content", {})
+                            .get("parts", [])
+                        )
+
+                        for part in parts:
+                            if part.get("text"):
+                                print(f"Gemini generation successful: {model}")
+                                return part["text"].strip()
+
+                    print(f"Gemini {model} returned no usable text.")
+
+                except httpx.TimeoutException:
+                    print(f"Gemini {model} request timed out.")
+                except httpx.RequestError as e:
+                    print(
+                        f"Gemini {model} network error: "
+                        f"{type(e).__name__}"
+                    )
+
+        print("All Gemini models failed. Local fallback may be used.")
         return None
+
+    except Exception as e:
+        print(f"Gemini integration error: {type(e).__name__}")
+        return None
+
 
 def extract_factual_claims(text: str) -> List[Dict[str, str]]:
     """Scan text for statistics, percentages, years, dates, or authoritative claims that need verification."""
