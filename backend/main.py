@@ -30,8 +30,9 @@ from models import (
     ScheduledPostUpdateRequest
 )
 from services.ai_service import (
-    call_gemini,
-    get_last_gemini_model,
+    call_ai,
+    get_last_ai_provider,
+    get_last_ai_model,
     generate_mock_content,
     generate_mock_repurpose,
     mock_quality_evaluation,
@@ -110,30 +111,40 @@ Custom Instructions: {req.custom_instructions or 'None'}
 Please produce the finalized, publication-ready piece of content now."""
 
 
-    # Try Gemini if an API key is available
+    # Try Gemini first, then Z.ai GLM-4.7
     output_text = None
     ai_provider = "Algorithmic Engine (Local)"
 
-    gemini_configured = bool(req.api_key or os.getenv("GEMINI_API_KEY"))
+    ai_configured = bool(
+        req.api_key
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("ZAI_API_KEY")
+    )
 
-    if gemini_configured:
-        gemini_result = await call_gemini(
+    if ai_configured:
+        ai_result = await call_ai(
             prompt,
             system_instruction,
             api_key=req.api_key or ""
         )
 
-        if gemini_result:
-            output_text = gemini_result
-            used_model = get_last_gemini_model()
-            if used_model == "gemini-3.8-flash":
-                ai_provider = "Google Gemini 3.8 Flash"
-            elif used_model == "gemini-3.5-flash-lite":
-                ai_provider = "Google Gemini 3.5 Flash Lite (Backup)"
-            else:
-                ai_provider = "Google Gemini API"
+        if ai_result:
+            output_text = ai_result
+            used_provider = get_last_ai_provider()
+            used_model = get_last_ai_model()
+
+            if used_provider == "Z.ai":
+                ai_provider = "Z.ai GLM-4.7"
+            elif used_provider == "Google Gemini":
+                if used_model == "gemini-3.8-flash":
+                    ai_provider = "Google Gemini 3.8 Flash"
+                elif used_model == "gemini-3.5-flash-lite":
+                    ai_provider = "Google Gemini 3.5 Flash Lite (Backup)"
+                else:
+                    ai_provider = "Google Gemini API"
         else:
-            ai_provider = "Algorithmic Engine (Local - Gemini unavailable)"
+            ai_provider = "Algorithmic Engine (Local - AI providers unavailable)"
+
 
     # Use local fallback only when Gemini is unavailable
     if not output_text:
@@ -194,8 +205,8 @@ Original Text:
 Output ONLY the edited/improved text with no conversational preamble."""
 
     edited_text = None
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
-        gemini_result = await call_gemini(prompt, api_key=req.api_key or "")
+    if req.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("ZAI_API_KEY"):
+        gemini_result = await call_ai(prompt, api_key=req.api_key or "")
         if gemini_result:
             edited_text = gemini_result
 
@@ -234,7 +245,7 @@ Output ONLY the edited/improved text with no conversational preamble."""
 @app.post("/api/repurpose")
 async def repurpose_content(req: RepurposeRequest):
     results = {}
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
+    if req.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("ZAI_API_KEY"):
         for fmt in req.target_formats:
             p = f"""Repurpose the following master content into a top-performing {fmt.replace('_', ' ').upper()} asset.
 Target Format: {fmt}
@@ -242,7 +253,7 @@ Master Content:
 {req.source_content}
 
 Produce a complete, optimized post ready for immediate deployment on that platform."""
-            res = await call_gemini(p, api_key=req.api_key or "")
+            res = await call_ai(p, api_key=req.api_key or "")
             if res:
                 results[fmt] = res
 
@@ -264,7 +275,7 @@ async def evaluate_quality(req: QualityEvaluateRequest):
     metrics = mock_quality_evaluation(req.text, prompt=req.prompt or "")
 
     # Check if Gemini can provide deep qualitative commentary
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
+    if req.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("ZAI_API_KEY"):
         prompt = f"""Evaluate this content for editorial quality:
 Original Intent/Topic: {req.prompt or 'Unspecified'}
 Target Tone: {req.target_tone or 'Professional'}
@@ -275,7 +286,7 @@ Provide:
 1. Two high-impact strengths
 2. Two precise suggestions to improve engagement
 3. Factuality check flag if any claim needs verification"""
-        gemini_feedback = await call_gemini(prompt, api_key=req.api_key or "")
+        gemini_feedback = await call_ai(prompt, api_key=req.api_key or "")
         if gemini_feedback:
             metrics["ai_editorial_review"] = gemini_feedback
 
@@ -293,7 +304,7 @@ async def analyze_seo_endpoint(req: SeoAnalyzeRequest):
     )
 
     # Optional Gemini enhancement for meta tags
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
+    if req.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("ZAI_API_KEY"):
         prompt = f"""Act as a top-tier SEO specialist. Generate an ultra-high CTR meta title (under 60 chars) and compelling meta description (under 155 chars) targeting '{req.target_keyword}'.
 Content:
 {req.content[:1500]}
@@ -303,7 +314,7 @@ Format JSON:
   "optimized_title": "...",
   "optimized_description": "..."
 }}"""
-        gemini_seo = await call_gemini(prompt, api_key=req.api_key or "")
+        gemini_seo = await call_ai(prompt, api_key=req.api_key or "")
         if gemini_seo:
             try:
                 clean_json = gemini_seo.strip().replace("```json", "").replace("```", "").strip()
@@ -328,7 +339,7 @@ async def generate_ab_headlines_endpoint(req: AbTestRequest):
         audience=req.target_audience or "Creators"
     )
 
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
+    if req.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("ZAI_API_KEY"):
         prompt = f"""Generate 5 viral high-CTR headline variations for:
 Topic: {req.topic}
 Target Audience: {req.target_audience or 'General'}
@@ -343,7 +354,7 @@ Return ONLY a JSON array of objects with:
     "rationale": "..."
   }}
 ]"""
-        gemini_res = await call_gemini(prompt, api_key=req.api_key or "")
+        gemini_res = await call_ai(prompt, api_key=req.api_key or "")
         if gemini_res:
             try:
                 clean_json = gemini_res.strip().replace("```json", "").replace("```", "").strip()
@@ -440,7 +451,7 @@ async def analyze_brand_voice(req: BrandVoiceAnalyzeRequest):
     keywords = ["results", "impact", "focus", "streamline"]
     guidelines = "Keep phrasing energetic, avoid unnecessary jargon, and use direct second-person address ('you/your')."
 
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
+    if req.api_key or os.getenv("GEMINI_API_KEY") or os.getenv("ZAI_API_KEY"):
         prompt = f"""Analyze this writing sample and extract brand voice attributes in valid JSON format:
 Sample:
 \"\"\"{sample}\"\"\"
@@ -453,7 +464,7 @@ Return ONLY a JSON object with:
   "guidelines": "1-2 sentences on sentence length, cadence, and reader engagement style",
   "industry_inferred": "Likely industry"
 }}"""
-        gemini_res = await call_gemini(prompt, api_key=req.api_key or "")
+        gemini_res = await call_ai(prompt, api_key=req.api_key or "")
         if gemini_res:
             try:
                 # clean potential markdown json ticks

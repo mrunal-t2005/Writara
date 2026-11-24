@@ -174,6 +174,141 @@ async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = 
         print(f"Gemini integration error: {type(e).__name__}")
         return None
 
+_last_ai_provider: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "_last_ai_provider", default=None
+)
+_last_ai_model: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    "_last_ai_model", default=None
+)
+
+
+def get_last_ai_provider() -> Optional[str]:
+    return _last_ai_provider.get()
+
+
+def get_last_ai_model() -> Optional[str]:
+    return _last_ai_model.get()
+
+
+async def call_zai(
+    prompt: str,
+    system_instruction: str = ""
+) -> Optional[str]:
+    """Call the official Z.ai Chat Completions API using GLM-4.7."""
+    key = os.getenv("ZAI_API_KEY", "").strip()
+
+    if not key:
+        print("Z.ai unavailable: API key not configured.")
+        return None
+
+    messages = []
+
+    if system_instruction:
+        messages.append({
+            "role": "system",
+            "content": system_instruction
+        })
+
+    messages.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    payload = {
+        "model": "glm-4.7",
+        "messages": messages,
+        "temperature": 0.7,
+        "max_tokens": 3000
+    }
+
+    headers = {
+        "Authorization": f"Bearer {key}",
+        "Content-Type": "application/json"
+    }
+
+    timeout = httpx.Timeout(30.0, connect=5.0)
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.post(
+                "https://api.z.ai/api/paas/v4/chat/completions",
+                headers=headers,
+                json=payload
+            )
+
+        if response.status_code != 200:
+            print(
+                f"Z.ai GLM-4.7 failed: HTTP {response.status_code}"
+            )
+            return None
+
+        data = response.json()
+        choices = data.get("choices", [])
+
+        if not choices:
+            print("Z.ai GLM-4.7 returned no choices.")
+            return None
+
+        content = choices[0].get("message", {}).get("content")
+
+        if isinstance(content, str) and content.strip():
+            print("Z.ai generation successful: glm-4.7")
+            return content.strip()
+
+        if isinstance(content, list):
+            text_parts = [
+                item.get("text", "")
+                for item in content
+                if isinstance(item, dict)
+            ]
+            result = "\n".join(part for part in text_parts if part.strip())
+            if result.strip():
+                print("Z.ai generation successful: glm-4.7")
+                return result.strip()
+
+        print("Z.ai GLM-4.7 returned no usable text.")
+        return None
+
+    except httpx.TimeoutException:
+        print("Z.ai GLM-4.7 request timed out.")
+    except httpx.RequestError as exc:
+        print(f"Z.ai network error: {type(exc).__name__}")
+    except Exception as exc:
+        print(f"Z.ai integration error: {type(exc).__name__}")
+
+    return None
+
+
+async def call_ai(
+    prompt: str,
+    system_instruction: str = "",
+    api_key: str = ""
+) -> Optional[str]:
+    """Try Gemini, then Z.ai GLM-4.7. Return None for local fallback."""
+    _last_ai_provider.set(None)
+    _last_ai_model.set(None)
+
+    gemini_result = await call_gemini(
+        prompt,
+        system_instruction,
+        api_key=api_key
+    )
+
+    if gemini_result:
+        _last_ai_provider.set("Google Gemini")
+        _last_ai_model.set(get_last_gemini_model())
+        return gemini_result
+
+    zai_result = await call_zai(prompt, system_instruction)
+
+    if zai_result:
+        _last_ai_provider.set("Z.ai")
+        _last_ai_model.set("glm-4.7")
+        return zai_result
+
+    print("All AI providers unavailable. Local fallback may be used.")
+    return None
+
 def extract_factual_claims(text: str) -> List[Dict[str, str]]:
     """Scan text for statistics, percentages, years, dates, or authoritative claims that need verification."""
     flags = []
