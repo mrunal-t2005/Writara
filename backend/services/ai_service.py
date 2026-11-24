@@ -237,8 +237,40 @@ async def call_zai(
             )
 
         if response.status_code != 200:
+            error_code = str(response.status_code)
+            error_message = "No error details returned"
+
+            try:
+                err_data = response.json()
+
+                if isinstance(err_data, dict):
+                    err_obj = err_data.get("error", err_data)
+
+                    if isinstance(err_obj, dict):
+                        error_code = str(
+                            err_obj.get("code", response.status_code)
+                        )
+                        error_message = str(
+                            err_obj.get(
+                                "message",
+                                err_data.get("message", error_message)
+                            )
+                        )
+                    else:
+                        error_message = str(err_obj)
+
+            except Exception:
+                error_message = "Non-JSON error response"
+
+            if key:
+                error_message = error_message.replace(key, "[REDACTED]")
+
+            error_message = error_message.replace("\r", " ").replace("\n", " ")
+            error_message = error_message[:300]
+
             print(
-                f"Z.ai GLM-4.7 failed: HTTP {response.status_code}"
+                f"Z.ai GLM-4.7 failed: HTTP {response.status_code} "
+                f"(code: {error_code}, message: {error_message})"
             )
             return None
 
