@@ -5,7 +5,31 @@ import sys
 BASE_URL = "http://127.0.0.1:8000"
 errors = []
 
+_client = None
+try:
+    with urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=1):
+        pass
+except Exception:
+    try:
+        from fastapi.testclient import TestClient
+        from main import app
+        _client = TestClient(app)
+    except Exception as e:
+        print(f"Failed to initialize in-process TestClient fallback: {e}", file=sys.stderr)
+        raise RuntimeError(f"Standalone server at {BASE_URL} not reachable and TestClient initialization failed: {e}") from e
+
 def request(method, path, data=None):
+    if _client is not None:
+        try:
+            res = _client.request(method, path, json=data)
+            try:
+                body = res.json()
+            except Exception:
+                body = res.text
+            return res.status_code, body
+        except Exception as e:
+            return 500, f"Exception: {e}"
+
     url = f"{BASE_URL}{path}"
     headers = {"Content-Type": "application/json"}
     body = json.dumps(data).encode("utf-8") if data is not None else None

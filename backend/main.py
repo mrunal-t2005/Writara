@@ -1,13 +1,16 @@
 import os
 import uuid
 import json
+from pathlib import Path
 from datetime import datetime
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-load_dotenv()
+# Explicitly load backend/.env while preserving existing system/Render environment variables
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env", override=False)
 
 from database import get_connection, init_db
 from models import (
@@ -28,6 +31,7 @@ from models import (
 )
 from services.ai_service import (
     call_gemini,
+    get_last_gemini_model,
     generate_mock_content,
     generate_mock_repurpose,
     mock_quality_evaluation,
@@ -121,7 +125,13 @@ Please produce the finalized, publication-ready piece of content now."""
 
         if gemini_result:
             output_text = gemini_result
-            ai_provider = "Google Gemini API"
+            used_model = get_last_gemini_model()
+            if used_model == "gemini-3.8-flash":
+                ai_provider = "Google Gemini 3.8 Flash"
+            elif used_model == "gemini-3.5-flash-lite":
+                ai_provider = "Google Gemini 3.5 Flash Lite (Backup)"
+            else:
+                ai_provider = "Google Gemini API"
         else:
             ai_provider = "Algorithmic Engine (Local - Gemini unavailable)"
 
