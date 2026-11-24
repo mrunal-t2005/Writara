@@ -2,9 +2,14 @@ import os
 import re
 import json
 import httpx
+import contextvars
 from typing import Dict, Any, List, Optional
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+_last_gemini_model: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("_last_gemini_model", default=None)
+
+def get_last_gemini_model() -> Optional[str]:
+    """Returns the model identifier used in the most recent successful call_gemini invocation in the current context."""
+    return _last_gemini_model.get()
 
 def calculate_readability(text: str) -> Dict[str, Any]:
     """Calculate Flesch Reading Ease & Flesch-Kincaid Grade Level."""
@@ -59,9 +64,10 @@ def calculate_readability(text: str) -> Dict[str, Any]:
 
 
 async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = "") -> Optional[str]:
-    """Call Gemini with primary and backup models and diagnostic logging."""
+    """Call Gemini with primary and backup models, header authentication, and diagnostic logging."""
+    _last_gemini_model.set(None)
 
-    key = api_key or GEMINI_API_KEY or os.getenv("GEMINI_API_KEY", "")
+    key = (api_key or os.getenv("GEMINI_API_KEY", "")).strip()
     if not key:
         print("Gemini unavailable: API key not configured.")
         return None
@@ -84,6 +90,11 @@ async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = 
             "parts": [{"text": system_instruction}]
         }
 
+    headers = {
+        "Content-Type": "application/json",
+        "x-goog-api-key": key,
+    }
+
     client_timeout = httpx.Timeout(20.0, connect=5.0)
 
     try:
@@ -92,16 +103,41 @@ async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = 
                 url = (
                     "https://generativelanguage.googleapis.com/"
                     f"v1beta/models/{model}:generateContent"
-                    f"?key={key}"
                 )
 
                 try:
-                    resp = await client.post(url, json=payload)
+                    resp = await client.post(url, headers=headers, json=payload)
 
                     if resp.status_code != 200:
+                        error_reason = "Unknown error"
+                        error_status = "UNKNOWN"
+                        try:
+                            err_json = resp.json()
+                            err_obj = err_json.get("error", {})
+                            error_reason = err_obj.get("message", resp.text[:200])
+                            error_status = err_obj.get("status", str(resp.status_code))
+                        except Exception:
+                            error_reason = resp.text[:200]
+
+                        if key:
+                            error_reason = error_reason.replace(key, "[REDACTED]")
+
+                        if resp.status_code == 400:
+                            category = "Invalid request or API key"
+                        elif resp.status_code == 403:
+                            category = "Permission denied or API restriction"
+                        elif resp.status_code == 404:
+                            category = "Model not found or unsupported"
+                        elif resp.status_code == 429:
+                            category = "Quota exceeded or rate limit reached"
+                        elif resp.status_code >= 500:
+                            category = "Google server error"
+                        else:
+                            category = f"HTTP {resp.status_code}"
+
                         print(
-                            f"Gemini {model} failed: "
-                            f"HTTP {resp.status_code}: {resp.text[:500]}"
+                            f"Gemini {model} failed: {category} "
+                            f"(status: {error_status}, message: {error_reason})"
                         )
                         continue
 
@@ -117,6 +153,7 @@ async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = 
 
                         for part in parts:
                             if part.get("text"):
+                                _last_gemini_model.set(model)
                                 print(f"Gemini generation successful: {model}")
                                 return part["text"].strip()
 
@@ -136,7 +173,6 @@ async def call_gemini(prompt: str, system_instruction: str = "", api_key: str = 
     except Exception as e:
         print(f"Gemini integration error: {type(e).__name__}")
         return None
-
 
 def extract_factual_claims(text: str) -> List[Dict[str, str]]:
     """Scan text for statistics, percentages, years, dates, or authoritative claims that need verification."""
