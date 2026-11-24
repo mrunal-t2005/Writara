@@ -105,16 +105,27 @@ Custom Instructions: {req.custom_instructions or 'None'}
 
 Please produce the finalized, publication-ready piece of content now."""
 
-    # Try Gemini if key is provided or env var exists
+
+    # Try Gemini if an API key is available
     output_text = None
     ai_provider = "Algorithmic Engine (Local)"
-    
-    if req.api_key or os.getenv("GEMINI_API_KEY"):
-        gemini_result = await call_gemini(prompt, system_instruction, api_key=req.api_key or "")
+
+    gemini_configured = bool(req.api_key or os.getenv("GEMINI_API_KEY"))
+
+    if gemini_configured:
+        gemini_result = await call_gemini(
+            prompt,
+            system_instruction,
+            api_key=req.api_key or ""
+        )
+
         if gemini_result:
             output_text = gemini_result
-            ai_provider = "Google Gemini 2.5 Flash"
+            ai_provider = "Google Gemini API"
+        else:
+            ai_provider = "Algorithmic Engine (Local - Gemini unavailable)"
 
+    # Use local fallback only when Gemini is unavailable
     if not output_text:
         output_text = generate_mock_content(
             topic=req.topic,
@@ -126,10 +137,11 @@ Please produce the finalized, publication-ready piece of content now."""
             brand_voice=brand_voice_data
         )
 
+
     # Calculate metrics
     readability = calculate_readability(output_text)
     eval_metrics = mock_quality_evaluation(output_text, prompt=req.topic)
-    
+
     # Save to history
     hist_id = f"hist-{uuid.uuid4().hex[:8]}"
     cur = conn.cursor()
@@ -240,7 +252,7 @@ Produce a complete, optimized post ready for immediate deployment on that platfo
 @app.post("/api/evaluate")
 async def evaluate_quality(req: QualityEvaluateRequest):
     metrics = mock_quality_evaluation(req.text, prompt=req.prompt or "")
-    
+
     # Check if Gemini can provide deep qualitative commentary
     if req.api_key or os.getenv("GEMINI_API_KEY"):
         prompt = f"""Evaluate this content for editorial quality:
@@ -371,7 +383,7 @@ def create_brand_voice(req: BrandVoiceCreateRequest):
     cur = conn.cursor()
     vid = f"voice-{uuid.uuid4().hex[:8]}"
     now = datetime.utcnow().isoformat()
-    
+
     if req.is_default:
         cur.execute("UPDATE brand_voices SET is_default = 0")
 
@@ -411,7 +423,7 @@ async def analyze_brand_voice(req: BrandVoiceAnalyzeRequest):
     sample = req.sample_text.strip()
     if not sample:
         raise HTTPException(status_code=400, detail="Sample text cannot be empty")
-        
+
     # Algorithmic extraction default
     attributes = ["Authentic", "Direct", "Value-driven", "Engaging", "Clear"]
     banned = ["synergy", "pinnacle", "game-changing"]
@@ -527,7 +539,7 @@ def update_document(doc_id: str, req: DocumentUpdateRequest):
     conn = get_connection()
     cur = conn.cursor()
     now = datetime.utcnow().isoformat()
-    
+
     fields = []
     values = []
     if req.title is not None:
@@ -556,11 +568,11 @@ def update_document(doc_id: str, req: DocumentUpdateRequest):
     if req.quality_score is not None:
         fields.append("quality_score = ?")
         values.append(req.quality_score)
-        
+
     fields.append("updated_at = ?")
     values.append(now)
     values.append(doc_id)
-    
+
     cur.execute(f"UPDATE documents SET {', '.join(fields)} WHERE id = ?", values)
     conn.commit()
     conn.close()
@@ -619,7 +631,7 @@ def create_project(req: ProjectCreateRequest):
 def get_analytics():
     conn = get_connection()
     cur = conn.cursor()
-    
+
     cur.execute("SELECT COUNT(*), SUM(word_count) FROM documents")
     doc_stats = cur.fetchone()
     total_docs = doc_stats[0] or 0
